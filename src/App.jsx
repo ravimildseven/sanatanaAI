@@ -28,25 +28,62 @@ function slugify(str) {
 
 export default function App() {
   const [videos, setVideos] = useState([]);
+  const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [activeIdx, setActiveIdx] = useState(0);
   const [activeSection, setActiveSection] = useState(SECTIONS.VIDEOS);
 
   useEffect(() => {
     async function fetchVideos() {
+      setLoading(true);
+      setError(null);
       try {
-        const res = await fetch(
-          `https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${CHANNEL_ID}&maxResults=10&order=date&type=video&key=${YOUTUBE_API_KEY}`
+        // First, try to get channel uploads playlist
+        const channelResponse = await fetch(
+          `https://www.googleapis.com/youtube/v3/channels?part=contentDetails&id=${CHANNEL_ID}&key=${YOUTUBE_API_KEY}`
         );
-        const data = await res.json();
-        const items = data.items.map((i) => ({
-          videoId: i.id.videoId,
-          title: i.snippet.title,
-          description: i.snippet.description || "",
-          thumbnail: i.snippet.thumbnails.high.url,
+
+        if (!channelResponse.ok) {
+          throw new Error(`Channel API failed with status ${channelResponse.status}`);
+        }
+
+        const channelData = await channelResponse.json();
+        if (!channelData.items || channelData.items.length === 0) {
+          throw new Error('Channel not found');
+        }
+
+        const uploadsPlaylistId = channelData.items[0].contentDetails.relatedPlaylists.uploads;
+
+        // Then get the videos from the uploads playlist
+        const videosResponse = await fetch(
+          `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&playlistId=${uploadsPlaylistId}&maxResults=10&key=${YOUTUBE_API_KEY}`
+        );
+
+        if (!videosResponse.ok) {
+          throw new Error(`Videos API failed with status ${videosResponse.status}`);
+        }
+
+        const data = await videosResponse.json();
+
+        if (!data.items || data.items.length === 0) {
+          setVideos([]);
+          return;
+        }
+
+        const items = data.items.map((item) => ({
+          videoId: item.snippet.resourceId.videoId,
+          title: item.snippet.title,
+          description: item.snippet.description || "",
+          thumbnail: item.snippet.thumbnails.high?.url || "",
         }));
+
         setVideos(items);
       } catch (error) {
         console.error("Error fetching videos:", error);
+        setError(error.message);
+        setVideos([]);
+      } finally {
+        setLoading(false);
       }
     }
 
@@ -91,29 +128,52 @@ export default function App() {
         <h2 className="text-3xl font-bold text-center mb-8 text-gray-800">{BRAND.tagline}</h2>
 
         {activeSection === SECTIONS.VIDEOS && (
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {videos.map((video, idx) => (
-              <motion.div
-                key={video.videoId}
-                className="bg-white rounded-lg shadow-lg overflow-hidden"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: idx * 0.1 }}
-              >
-                <div className="aspect-w-16 aspect-h-9">
-                  <iframe
-                    src={`https://www.youtube.com/embed/${video.videoId}`}
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowFullScreen
-                    className="w-full h-full"
-                  />
-                </div>
-                <div className="p-4">
-                  <h3 className="text-lg font-semibold text-gray-800 mb-2">{video.title}</h3>
-                  <p className="text-gray-600 text-sm line-clamp-2">{video.description}</p>
-                </div>
-              </motion.div>
-            ))}
+          <div>
+            {loading && (
+              <div className="text-center py-10">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
+                <p className="mt-4 text-gray-600">Loading videos...</p>
+              </div>
+            )}
+
+            {error && (
+              <div className="text-center py-10">
+                <p className="text-red-600">Error loading videos: {error}</p>
+              </div>
+            )}
+
+            {!loading && !error && videos.length === 0 && (
+              <div className="text-center py-10">
+                <p className="text-gray-600">No videos found.</p>
+              </div>
+            )}
+
+            {!loading && !error && videos.length > 0 && (
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {videos.map((video, idx) => (
+                  <motion.div
+                    key={video.videoId}
+                    className="bg-white rounded-lg shadow-lg overflow-hidden"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: idx * 0.1 }}
+                  >
+                    <div className="aspect-w-16 aspect-h-9">
+                      <iframe
+                        src={`https://www.youtube.com/embed/${video.videoId}`}
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                        className="w-full h-full"
+                      />
+                    </div>
+                    <div className="p-4">
+                      <h3 className="text-lg font-semibold text-gray-800 mb-2">{video.title}</h3>
+                      <p className="text-gray-600 text-sm line-clamp-2">{video.description}</p>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
