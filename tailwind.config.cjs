@@ -5,9 +5,14 @@ module.exports = {
     "./src/**/*.{js,ts,jsx,tsx}",
   ],
   theme: {
-    extend: {},
+    extend: {
+      fontFamily: {
+        sanskrit: ['Arial Unicode MS', 'Noto Sans Devanagari', 'sans-serif'],
+      },
+    },
   },
   plugins: [
     require('@tailwindcss/typography'),
+    require('@tailwindcss/aspect-ratio'),
   ],
 }

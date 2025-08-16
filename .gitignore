@@ -24,18 +24,10 @@ dist-ssr
 *.sln
 *.sw?
 
-# Environment variables
+# Environment files
 .env
 .env.*
 !.env.example
 
-# Build output
-build/
-out/
-
-# Cache
-.cache/
-.temp/
-
-# API keys and secrets
+# Config files with sensitive data
 src/config/keys.js
