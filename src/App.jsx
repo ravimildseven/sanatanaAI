@@ -5,11 +5,11 @@ import clsx from 'clsx';
 import EbookViewer from './components/EbookViewer';
 import { YOUTUBE_API_KEY } from './config/keys';
 
-const CHANNEL_HANDLE = "@SanatanaKathaAI";
+const CHANNEL_ID = "UCwOqIpxhefJOtMqqL7nGwEA"; // Direct channel ID for SanatanaKathaAI
 const BRAND = {
   name: "sanatanaAI",
   tagline: "Stories, shlokas, and satsang — powered by AI",
-  youtubeChannelUrl: `https://www.youtube.com/${CHANNEL_HANDLE}`,
+  youtubeChannelUrl: `https://www.youtube.com/@SanatanaKathaAI`,
   contactUrl: "mailto:you@example.com",
 };
 
@@ -34,14 +34,8 @@ export default function App() {
   useEffect(() => {
     async function fetchVideos() {
       try {
-        const channelRes = await fetch(
-          `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${CHANNEL_HANDLE}&type=channel&key=${YOUTUBE_API_KEY}`
-        );
-        const channelData = await channelRes.json();
-        const channelId = channelData.items[0].id.channelId;
-
         const res = await fetch(
-          `https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${channelId}&maxResults=3&order=date&type=video&key=${YOUTUBE_API_KEY}`
+          `https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${CHANNEL_ID}&maxResults=10&order=date&type=video&key=${YOUTUBE_API_KEY}`
         );
         const data = await res.json();
         const items = data.items.map((i) => ({
@@ -49,13 +43,13 @@ export default function App() {
           title: i.snippet.title,
           description: i.snippet.description || "",
           thumbnail: i.snippet.thumbnails.high.url,
-          slug: slugify(i.snippet.title),
         }));
         setVideos(items);
       } catch (error) {
         console.error("Error fetching videos:", error);
       }
     }
+
     fetchVideos();
   }, []);
 
