@@ -5,7 +5,7 @@ import clsx from 'clsx';
 import EbookViewer from './components/EbookViewer';
 import { YOUTUBE_API_KEY } from './config/keys';
 
-const CHANNEL_ID = "UCwOqIpxhefJOtMqqL7nGwEA"; // Direct channel ID for SanatanaKathaAI
+const CHANNEL_HANDLE = "@SanatanaKathaAI"; // Using channel handle instead of ID initially
 const BRAND = {
   name: "sanatanaAI",
   tagline: "Stories, shlokas, and satsang — powered by AI",
@@ -38,20 +38,19 @@ export default function App() {
       setLoading(true);
       setError(null);
       try {
-        // First, try to get channel uploads playlist
+        // First, get the channel ID from the handle
         const channelResponse = await fetch(
-          `https://www.googleapis.com/youtube/v3/channels?part=contentDetails&id=${CHANNEL_ID}&key=${YOUTUBE_API_KEY}`
+          `https://www.googleapis.com/youtube/v3/channels?part=id,contentDetails&forHandle=${CHANNEL_HANDLE}&key=${YOUTUBE_API_KEY}`
         );
 
-        if (!channelResponse.ok) {
-          throw new Error(`Channel API failed with status ${channelResponse.status}`);
-        }
-
         const channelData = await channelResponse.json();
-        if (!channelData.items || channelData.items.length === 0) {
-          throw new Error('Channel not found');
+        console.log('Channel Data:', channelData);
+
+        if (!channelResponse.ok || !channelData.items || channelData.items.length === 0) {
+          throw new Error('Could not find channel. Please check the channel handle.');
         }
 
+        const channelId = channelData.items[0].id;
         const uploadsPlaylistId = channelData.items[0].contentDetails.relatedPlaylists.uploads;
 
         // Then get the videos from the uploads playlist
@@ -59,24 +58,25 @@ export default function App() {
           `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&playlistId=${uploadsPlaylistId}&maxResults=10&key=${YOUTUBE_API_KEY}`
         );
 
+        const videosData = await videosResponse.json();
+        console.log('Videos Data:', videosData);
+
         if (!videosResponse.ok) {
-          throw new Error(`Videos API failed with status ${videosResponse.status}`);
+          throw new Error(videosData.error?.message || 'Failed to fetch videos');
         }
 
-        const data = await videosResponse.json();
-
-        if (!data.items || data.items.length === 0) {
-          setVideos([]);
-          return;
+        if (!videosData.items || videosData.items.length === 0) {
+          throw new Error('No videos found in this channel');
         }
 
-        const items = data.items.map((item) => ({
+        const items = videosData.items.map((item) => ({
           videoId: item.snippet.resourceId.videoId,
           title: item.snippet.title,
           description: item.snippet.description || "",
           thumbnail: item.snippet.thumbnails.high?.url || "",
         }));
 
+        console.log('Processed Videos:', items);
         setVideos(items);
       } catch (error) {
         console.error("Error fetching videos:", error);
