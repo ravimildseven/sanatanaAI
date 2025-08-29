@@ -4,6 +4,10 @@ import { Youtube, BookOpen, PlayCircle, Book } from "lucide-react";
 import clsx from 'clsx';
 import EbookViewer from './components/EbookViewer';
 import { YOUTUBE_API_KEY } from './config/keys';
+import { stories } from './data/stories';
+import krishnaStoryImg from './images/krishna_story.png';
+import ganeshaStoryImg from './images/ganesha_story.png';
+import ramaStoryImg from './images/rama_story.png';
 
 const CHANNEL_HANDLE = "@SanatanaKathaAI"; // Using channel handle instead of ID initially
 const BRAND = {
@@ -178,10 +182,49 @@ export default function App() {
         )}
 
         {activeSection === SECTIONS.STORIES && (
-          <div className="bg-white rounded-lg shadow-lg p-6">
-            <div className="max-w-4xl mx-auto">
-              <EbookViewer />
-            </div>
+          <div className="grid gap-8 md:grid-cols-1 lg:grid-cols-1">
+            {stories.map((story, index) => (
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.1 }}
+                className="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow"
+              >
+                <div className="flex flex-col md:flex-row">
+                  <div className="md:w-1/3">
+                    <img
+                      src={
+                        story.title === "The adventures of little Krishna"
+                          ? krishnaStoryImg
+                          : story.title === "Ganesha - A special guest"
+                          ? ganeshaStoryImg
+                          : ramaStoryImg
+                      }
+                      alt={story.title}
+                      className="w-full h-64 object-cover"
+                    />
+                  </div>
+                  <div className="p-6 md:w-2/3">
+                    <h3 className="text-2xl font-bold text-gray-800 mb-2">{story.title}</h3>
+                    <h4 className="text-lg text-gray-600 mb-4">{story.subtitle}</h4>
+                    {story.geminiLink && (
+                      <a
+                        href={story.geminiLink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-block mb-4 text-indigo-600 hover:text-indigo-800 transition-colors"
+                      >
+                        Read on Google Gemini →
+                      </a>
+                    )}
+                    <div className="mt-4 text-sm text-gray-500">
+                      <span>By {story.author} • {story.date}</span>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            ))}
           </div>
         )}
       </main>
